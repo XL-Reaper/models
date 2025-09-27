@@ -24,6 +24,9 @@ from object_detection.core import freezable_batch_norm
 from object_detection.models.keras_models import model_utils
 from object_detection.utils import ops
 
+def get_tensorflow_version():
+    """Get TensorFlow major and minor version numbers."""
+    return tuple(map(int, tf.__version__.split('.')[:2]))
 
 # pylint: disable=invalid-name
 # This method copied from the slim mobilenet base network code (same license)
@@ -320,15 +323,26 @@ def mobilenet_v2(batchnorm_training,
   Returns:
       A Keras model instance.
   """
-  layers_override = _LayersOverride(
-      batchnorm_training,
-      default_batchnorm_momentum=default_batchnorm_momentum,
-      conv_hyperparams=conv_hyperparams,
-      use_explicit_padding=use_explicit_padding,
-      min_depth=min_depth,
-      alpha=alpha,
-      conv_defs=conv_defs)
-  return tf.keras.applications.MobileNetV2(alpha=alpha,
-                                           layers=layers_override,
-                                           **kwargs)
+  tf_version = get_tensorflow_version()
+    
+  if tf_version >= (2, 12):
+    # TensorFlow 2.12+ - layers parameter removed
+    # Remove layers parameter if present
+    kwargs.pop('layers', None)
+    
+    # Create standard MobileNetV2 model
+    return tf.keras.applications.MobileNetV2(alpha=alpha, **kwargs)
+      
+  else:
+    layers_override = _LayersOverride(
+        batchnorm_training,
+        default_batchnorm_momentum=default_batchnorm_momentum,
+        conv_hyperparams=conv_hyperparams,
+        use_explicit_padding=use_explicit_padding,
+        min_depth=min_depth,
+        alpha=alpha,
+        conv_defs=conv_defs)
+    return tf.keras.applications.MobileNetV2(alpha=alpha,
+                                             layers=layers_override,
+                                             **kwargs)
 # pylint: enable=invalid-name
