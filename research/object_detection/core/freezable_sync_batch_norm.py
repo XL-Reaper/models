@@ -16,9 +16,18 @@
 """A freezable batch norm layer that uses Keras sync batch normalization."""
 import tensorflow as tf
 
+# Version-specific import
+try:
+    # For TensorFlow < 2.12
+    SyncBatchNormBase = tf.keras.layers.experimental.SyncBatchNormalization
+except AttributeError:
+    # For TensorFlow >= 2.12
+    class SyncBatchNormBase(tf.keras.layers.BatchNormalization):
+        def __init__(self, **kwargs):
+            kwargs['synchronized'] = True
+            super().__init__(**kwargs)
 
-class FreezableSyncBatchNorm(tf.keras.layers.experimental.SyncBatchNormalization
-                            ):
+class FreezableSyncBatchNorm(SyncBatchNormBase):
   """Sync Batch normalization layer (Ioffe and Szegedy, 2014).
 
   This is a `freezable` batch norm layer that supports setting the `training`
